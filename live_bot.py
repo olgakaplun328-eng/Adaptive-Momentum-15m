@@ -40,7 +40,12 @@ def fetch(sym):
     r=s.get(URL,params={"symbol":sym,"interval":TF,"limit":LIMIT},timeout=15); r.raise_for_status()
     d=r.json()
     if not isinstance(d,list) or len(d)<80: raise RuntimeError("bad kline response")
-    df=pd.DataFrame(d,columns=["time","open","high","low","close","volume","ct","qv","trades","tb","tq","ignore"])
+    rows = d if isinstance(d, list) else []
+    vals = []
+    for row in rows:
+        if isinstance(row, (list, tuple)) and len(row) >= 6:
+            vals.append(list(row[:8]) + [None] * max(0, 8-len(row[:8])))
+    df=pd.DataFrame(vals, columns=["time","open","high","low","close","volume","ct","qv"])
     for c in ["open","high","low","close","volume"]: df[c]=pd.to_numeric(df[c],errors="coerce")
     df["time"]=pd.to_datetime(df.time,unit="ms",utc=True)
     return df.iloc[:-1].copy()
